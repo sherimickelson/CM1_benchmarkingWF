@@ -1,0 +1,69 @@
+#! /usr/bin/env python
+import os, sys, glob, shutil, subprocess
+import json
+from plot.plot import plot_it 
+
+cm1_code_base = 'CM1_Work/CM1_benchmarkingWF/'
+log_base = "cm1-"
+json_file = "plot/files.json"
+cwd = os.getcwd()
+
+# Get a list of log files sitting within the directory with the similar name
+# in order to determine what number extention to add to this iteration
+similar_files = glob.glob(cwd + '/logs/' + log_base + ("[0-9]"*4) + ".log")
+if len(similar_files) > 0:
+    verNum = str(int(sorted(similar_files)[-1].split(log_base)[-1].split('.log')[0])+1).zfill(4)
+else:
+    verNum = '0001'
+log_fn = cwd + '/logs/' + log_base + verNum + '.log'
+
+
+# change to the src directory to build 
+print('############################################')
+print('')
+print('   Building code in '+cm1_code_base + '/src/')
+print('')
+print ('############################################')
+os.chdir(cm1_code_base + "/src/") 
+err=os.system("make -j")
+if err!=0:
+    print("ERROR: Problem while building")
+else:
+    print("Success!!!")
+
+
+# change to the run directory to run
+print('############################################')
+print('')
+print('   Running '+cm1_code_base + '/run/cm1.exe')
+print('   Output will be piped to '+log_fn)
+print('')
+print ('############################################')
+os.chdir(cm1_code_base + "/run/")
+err=os.system("./cm1.exe >& " + log_fn)
+if err!=0:
+    print("ERROR: Problem while running the model")
+else:
+    print("Success!!!")
+
+
+# change back to this scripts directory
+os.chdir(cwd)
+
+print('############################################')
+print('')
+print('   Create plots')
+print('')
+print ('############################################')
+# Read the json file into memory in order to add the new file to the list  
+with open(json_file) as f:
+    fns_raw = f.read()
+fns = json.loads(fns_raw)
+#fns.update({log_fn: "auto"})
+fns['experiment'][log_fn] = 'auto'
+with open(json_file, 'w') as f:
+    json.dump(fns, f, indent=4)
+
+# Run plotting
+#plot_it(json_file)
+
