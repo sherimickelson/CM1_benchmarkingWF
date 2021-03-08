@@ -65,5 +65,5 @@ with open(json_file, 'w') as f:
     json.dump(fns, f, indent=4)
 
 # Run plotting
-#plot_it(json_file)
+plot_it(json_file)
 
