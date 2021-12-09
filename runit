@@ -1,69 +1,128 @@
 #! /usr/bin/env python
 import os, sys, glob, shutil, subprocess
 import json
-from plot.plot import plot_it 
 
-cm1_code_base = 'CM1_Work/CM1_benchmarkingWF/'
-log_base = "cm1-"
+import create_runscript 
+
+
+#####################
+#
+# Edit these values
+#
+#####################
+
+cm1_code_base = '/glade/scratch/mickelso/CM1/CM1/'
 json_file = "plot/files.json"
+project_code = 'NTDD0004'
+queue = 'gpudev'
+namelist_input_list = [
+    'namelist.asd04-128x512.input',
+    'namelist.asd04-128x768.input',
+    'namelist.asd04-128x1k.input'
+]
+exe_list = {
+'cm1-openacc-debug.exe': {'args': 'FC=pgf90 USE_MPI=false USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=true',
+                          'mpi':True,
+                          'nodes':1,
+                          'ncpus':2,
+                          'mpiprocs':2,
+                          'ngpus':2,
+                          'walltime':'00:30:00'
+                         },
+'cm1-mpi-openacc-debug.exe': {'args':'FC=pgf90 USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=true',
+                              'mpi':False,
+                              'nodes':1,
+                              'ncpus':1,
+                              'mpiprocs':1,
+                              'ngpus':1,
+                              'walltime':'00:30:00'                                
+                             }
+
+}
+
+#####################
+#
+# End edittable section
+#
+#####################
+
+
 cwd = os.getcwd()
 
-# Get a list of log files sitting within the directory with the similar name
-# in order to determine what number extention to add to this iteration
-similar_files = glob.glob(cwd + '/logs/' + log_base + ("[0-9]"*4) + ".log")
-if len(similar_files) > 0:
-    verNum = str(int(sorted(similar_files)[-1].split(log_base)[-1].split('.log')[0])+1).zfill(4)
-else:
-    verNum = '0001'
-log_fn = cwd + '/logs/' + log_base + verNum + '.log'
+err = 0
+
+for exe in exe_list:
+
+    # change to the src directory to build 
+    print('\n\n\n\n\n\n')
+    print('############################################')
+    print('')
+    print('   Building code in '+cm1_code_base + '/src/')
+    print('')
+    print ('############################################')
+    os.chdir(cm1_code_base + "/src/") 
+#    err=os.system("make clean")
+#    err=os.system("make -j " + exe_list[exe]['args'])
+#    err=os.system("mv ../run/cm1.exe ../run/" + exe)
+    if err!=0:
+        print("ERROR: Problem while building")
+    else:
+        print("Success!!!")
+
+    for namelist_input in namelist_input_list:
+        # Get a list of log files sitting within the directory with the similar name
+        # in order to determine what number extention to add to this iteration
+        similar_files = glob.glob(cwd + '/logs/' + exe + "." + namelist_input + "." + ("[0-9]"*4) + ".log")
+        if len(similar_files) > 0:
+            verNum = str(int(sorted(similar_files)[-1].split(exe + "." )[-1].split('.log')[0])+1).zfill(4)
+        else:
+            verNum = '0001'
+        log_fn_base = exe + "." + namelist_input
+        log_fn = cwd + '/logs/' + log_fn_base + "." + verNum + '.log'
+
+        print('############################################')
+        print('')
+        print('   Running '+cm1_code_base + '/run/'+exe)
+        print('   Output will be piped to '+log_fn)
+        print('')
+        print ('############################################')
+
+        # set some variables for this setup
+        run_dir = cm1_code_base + "/run/"
+        run_script = cwd+'/'+os.path.basename(log_fn)+".submit.csh" 
+
+        # create the run script to submit to the queue    
+        create_runscript.create_runscript(exe, exe_list[exe], project_code, queue, cwd, run_dir, log_fn, run_script, namelist_input)
+
+        # submit the run script to the queue
+     #    err=os.system("qsub "+run_script)
+        if err!=0:
+            print("ERROR: Problem submitting job to the queue")
+        else:
+            print("Success!!! Job is in the queue.")
 
 
-# change to the src directory to build 
-print('############################################')
-print('')
-print('   Building code in '+cm1_code_base + '/src/')
-print('')
-print ('############################################')
-os.chdir(cm1_code_base + "/src/") 
-err=os.system("make -j")
-if err!=0:
-    print("ERROR: Problem while building")
-else:
-    print("Success!!!")
+        # change back to this scripts directory
+        os.chdir(cwd)
 
+        #####################
+        #
+        # Update the json file with new log file
+        #
+        #####################
 
-# change to the run directory to run
-print('############################################')
-print('')
-print('   Running '+cm1_code_base + '/run/cm1.exe')
-print('   Output will be piped to '+log_fn)
-print('')
-print ('############################################')
-os.chdir(cm1_code_base + "/run/")
-err=os.system("./cm1.exe >& " + log_fn)
-if err!=0:
-    print("ERROR: Problem while running the model")
-else:
-    print("Success!!!")
+        # Read the json file into memory in order to add the new file to the list  
+        with open(json_file) as f:
+            fns_raw = f.read()
+        fns = json.loads(fns_raw)
+        #fns.update({log_fn: "auto"})
+        if log_fn_base in fns.keys():
+            fns[log_fn_base]['experiment'][log_fn] = 'auto'
+        else:
+            fns[log_fn_base] = {'experiment': {}}
+            fns[log_fn_base]['experiment'] = {log_fn:'auto'}
+            fns[log_fn_base]['control'] = ''
+        with open(json_file, 'w') as f:
+            json.dump(fns, f, indent=4)
 
-
-# change back to this scripts directory
-os.chdir(cwd)
-
-print('############################################')
-print('')
-print('   Create plots')
-print('')
-print ('############################################')
-# Read the json file into memory in order to add the new file to the list  
-with open(json_file) as f:
-    fns_raw = f.read()
-fns = json.loads(fns_raw)
-#fns.update({log_fn: "auto"})
-fns['experiment'][log_fn] = 'auto'
-with open(json_file, 'w') as f:
-    json.dump(fns, f, indent=4)
-
-# Run plotting
-#plot_it(json_file)
 
