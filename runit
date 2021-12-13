@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import os, sys, glob, shutil, subprocess
 import json
+from datetime import datetime
 
 import create_runscript 
 
@@ -10,6 +11,10 @@ import create_runscript
 # Edit these values
 #
 #####################
+
+### IMPORTANT: uncomment the type of run this is
+#run_type = "control"
+run_type = "experiment"
 
 cm1_code_base = '/glade/scratch/mickelso/CM1/CM1/'
 json_file = "plot/files.json"
@@ -70,13 +75,9 @@ for exe in exe_list:
         print("Success!!!")
 
     for namelist_input in namelist_input_list:
-        # Get a list of log files sitting within the directory with the similar name
-        # in order to determine what number extention to add to this iteration
-        similar_files = glob.glob(cwd + '/logs/' + exe + "." + namelist_input + "." + ("[0-9]"*4) + ".log")
-        if len(similar_files) > 0:
-            verNum = str(int(sorted(similar_files)[-1].split(exe + "." )[-1].split('.log')[0])+1).zfill(4)
-        else:
-            verNum = '0001'
+        # create a log file name
+        # set version number to a time stamp
+        verNum = datetime.now().strftime("%Y_%m_%d-%I:%M:%S")
         log_fn_base = exe + "." + namelist_input
         log_fn = cwd + '/logs/' + log_fn_base + "." + verNum + '.log'
 
@@ -111,17 +112,19 @@ for exe in exe_list:
         #
         #####################
 
+#run_type = "control"
+#run_type = "experiment"
+
         # Read the json file into memory in order to add the new file to the list  
         with open(json_file) as f:
             fns_raw = f.read()
         fns = json.loads(fns_raw)
-        #fns.update({log_fn: "auto"})
-        if log_fn_base in fns.keys():
-            fns[log_fn_base]['experiment'][log_fn] = 'auto'
-        else:
-            fns[log_fn_base] = {'experiment': {}}
-            fns[log_fn_base]['experiment'] = {log_fn:'auto'}
-            fns[log_fn_base]['control'] = ''
+        if log_fn_base not in fns.keys():
+             fns[log_fn_base] = {"experiment":"", "control":""}
+        if run_type is "experiment":
+            fns[log_fn_base]['experiment'] = log_fn
+        if run_type is "control":
+            fns[log_fn_base]['control'] = log_fn
         with open(json_file, 'w') as f:
             json.dump(fns, f, indent=4)
 
