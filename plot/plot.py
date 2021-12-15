@@ -8,43 +8,107 @@ def parse_it(log_file):
 
     # parse the log file
     info = {
-              'stat':{},
-              'metric':{},
-              'performance':{}
+              'stats':{},
+              'metrics':{},
+              'performance':{},
+              'total_time':''
     }
+
+    # boolean to indicate that we're in the timing section of the file in order to collect those values
+    in_timing_section = False
+
+    #  Grep for these strings in the files specified within the json file
+    #  in order to verify correctness
+    info['metrics'] = {
+        'LWP (g/m2)': [],
+        'cloud fraction (%)': [],
+        'max w variance (m2/s2)': [],
+        'preciptation rate (mm/day)':[]
+    }
+
+    # open the log file and pull out stat, metric, and timing information
     with open(log_file) as cfile:
         for line in cfile:
+            # stat stuff
             if "stat::" in line:
                 split = line.strip().replace("stat::","").split(':')
                 #print(split)
-                if split[0].strip() in info['stat'].keys():
-                    info['stat'][split[0].strip()].append(split[1].split()[0].strip())
+                if split[0].strip() in info['stats'].keys():
+                    info['stats'][split[0].strip()].append(split[1].split()[0].strip())
                 else:
-                    info['stat'][split[0].strip()] = [split[1].split()[0].strip()]
+                    info['stats'][split[0].strip()] = [split[1].split()[0].strip()]
                 if len(split) > 2:
-                    if split[1].split()[-1].strip() in info['stat'].keys():
-                        info['stat'][split[1].split()[-1].strip()].append(split[2].split()[0].strip())
+                    if split[1].split()[-1].strip() in info['stats'].keys():
+                        info['stats'][split[1].split()[-1].strip()].append(split[2].split()[0].strip())
                     else:
-                        info['stat'][split[1].split()[-1].strip()] = [split[2].split()[0].strip()]
-#    for v in info['stat'].keys():
-#        print("\n"+log_file+"\n"+v+": size "+str(len(info['stat'][v])))
-#        print(info['stat'][v])
-
+                        info['stats'][split[1].split()[-1].strip()] = [split[2].split()[0].strip()]
+            # metric stuff
+            elif "Metric:" in line:
+               info['metrics'][line.split('Metric:')[-1].strip().split('=')[0].strip()].append(float(line.split()[-1]))               
+            # performance and total time collection
+            elif in_timing_section and ':' in line and len(line.split())==4:
+                split = line.split()
+                info['performance'][split[0].strip()] = split[-1].strip().replace("%","")
+            elif 'Total time:' in line:
+                 info['total_time'] = line.split()[-1].strip()
+                 in_timing_section = True
 
     return info
 
 
+def performance_plot(Ctimings, Ctitle, Etimings, Etitle):
+
+    # combine low values
+    low = 2.0
+    # control 
+    Cnew_timings = {'other':0}
+    for k in Ctimings.keys():
+        if float(Ctimings[k]) >= low:
+            Cnew_timings[k] = float(Ctimings[k])
+        else:
+            Cnew_timings['other'] += float(Ctimings[k])
+    #experiment
+    Enew_timings = {'other':0}
+    for k in Etimings.keys():
+        if float(Etimings[k]) >= low:
+            Enew_timings[k] = float(Etimings[k])
+        else:
+            Enew_timings['other'] += float(Etimings[k])
+
+    fig1, ax1 = plt.subplots(2,figsize=(15,15))
+    ax1[0].pie(Cnew_timings.values(), labels=Cnew_timings.keys(), autopct='%1.1f%%')
+    ax1[1].pie(Enew_timings.values(), labels=Enew_timings.keys(), autopct='%1.1f%%')
+    ax1[0].set_title(Ctitle,fontsize=10)
+    ax1[1].set_title(Etitle,fontsize=10)
+    plt.show()
+
+
+def line_info(_plt, Cvalues, Evalues, label):
+        colors = []
+        sub = []
+        for i in range(len(Cvalues)):
+            sub.append(Cvalues[i]-Evalues[i])
+        colors.append(_plt.plot(sub))
+        _plt.set_xlabel('time (min)')
+        _plt.set_ylabel(label)
+        _plt.grid(linestyle='--')
+        return colors
+
+
+def metric_plots(Cvalues, Evalues):
+
+    fig, ((pl1, pl2), (pl3,pl4)) = plt.subplots(2, 2, figsize=(12, 10))
+    plts = [pl1, pl2, pl3, pl4]
+
+    for i,label in enumerate(Cvalues.keys()):
+        colors = line_info(plts[i], Cvalues[label], Evalues[label], label)
+
+    plt.subplots_adjust(bottom=0.25)
+
+    plt.show()
+
+
 def read_logs(json_file):
-    #  Grep for these strings in the files specified within the json file
-    # Metric: LWP (g/m2)
-    # Metric: cloud fraction (%)     
-    # Metric: max w variance (m2/s2) 
-    # Metric: preciptation rate (mm/day)
-    plots = ['LWP (g/m2)', 
-             'cloud fraction (%)',
-             'max w variance (m2/s2)',
-             'preciptation rate (mm/day)'
-    ] 
 
     # get log names that contain the values to plot
     with open(json_file) as f:
@@ -67,16 +131,27 @@ def read_logs(json_file):
         control = parse_it(fns[f]['control'])
         experiment = parse_it(fns[f]['experiment'])
         # compare this against the control
-        for v in control['stat'].keys():
-            if control['stat'][v] != experiment['stat'][v]:
+        for v in control['stats'].keys():
+            if control['stats'][v] != experiment['stats'][v]:
                 print("\nDIFFERENCE IN VARIABLE "+v)
-                print(control['stat'][v])
-                print(experiment['stat'][v])
+                print(control['stats'][v])
+                print(experiment['stats'][v])
                 fail+=1
             else:
                 print("\nNO DIFFERENCE IN VARIABLE "+v)
                 ok+=1
-        # Print a summary for this comparison
+
+        # print and plot performance
+        print("control(%) vs. experiment(%)")
+        for v in control['performance']:
+            print(v+": "+control['performance'][v]+"  "+experiment['performance'][v])
+        performance_plot(control['performance'],fns[f]['control']+"\n Total Time: "+control['total_time']+" (seconds)",
+                         experiment['performance'],fns[f]['experiment']+"\n Total Time: "+experiment['total_time']+" (seconds)")
+
+        # create metric plots
+        metric_plots(control['metrics'], experiment['metrics'])
+
+        # Print the answer summary for this comparison
         print("============================================")
         print("Summary for "+fns[f]['control']+" compared to "+fns[f]['experiment'])
         print(str(ok)+" stat variables are ok.")
