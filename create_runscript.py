@@ -39,6 +39,7 @@ cd {{ run_dir }}
 #PBS -l walltime={{ walltime }}
 #PBS -j oe
 #PBS -A {{ project_code }}
+#PBS -q casper
 
 module purge
 module load ncarenv/1.3 nvhpc/21.7 cuda/11.4.0 ncarcompilers/0.5.0 openmpi netcdf
