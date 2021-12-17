@@ -8,7 +8,8 @@ def create_runscript(exe, params, project_code, queue, script_dir, run_dir, log_
     else:
         mpi = ''
 
-    t = Template(
+    if (int(params['ngpus']) > 0):
+        t = Template(
 """#!/bin/bash -l
 #PBS -N cm1
 #PBS -l select={{ nodes }}:ncpus={{ ncpus }}:mpiprocs={{ mpirpcs }}:ngpus={{ ngpus }}
@@ -27,7 +28,28 @@ export PCAST_COMPARE=abs=15,summary
 
 cd {{ run_dir }}
 
-{{ mpi }} ./{{ exe }} --namelist {{namelist_input}} >&  {{ script_dir }}/logs/{{ log_file }}
+{{ mpi }} ./{{ exe }} --namelist {{namelist_input}} >&  {{ log_file }}
+"""
+                )
+    else:
+        t = Template(
+"""#!/bin/bash -l
+#PBS -N cm1
+#PBS -l select={{ nodes }}:ncpus={{ ncpus }}:mpiprocs={{ mpirpcs }}
+#PBS -l walltime={{ walltime }}
+#PBS -j oe
+#PBS -A {{ project_code }}
+
+module purge
+module load ncarenv/1.3 nvhpc/21.7 cuda/11.4.0 ncarcompilers/0.5.0 openmpi netcdf
+
+export LD_LIBRARY_PATH=${NCAR_ROOT_CUDA}/lib64:${LD_LIBRARY_PATH}
+export UCX_MEMTYPE_CACHE=n
+export PCAST_COMPARE=abs=15,summary
+
+cd {{ run_dir }}
+
+{{ mpi }} ./{{ exe }} --namelist {{namelist_input}} >&  {{ log_file }}
 """
                 )
 

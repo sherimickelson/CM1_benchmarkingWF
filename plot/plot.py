@@ -1,8 +1,16 @@
+#! /usr/bin/env python
+
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import json
 import numpy as np
+import os
+import argparse
 from collections import OrderedDict
+
+# constants
+threshold = 1.0e-2
+
 
 def parse_it(log_file):
 
@@ -56,39 +64,51 @@ def parse_it(log_file):
     return info
 
 
-def performance_plot(Ctimings, Ctitle, Etimings, Etitle):
+def performance_plot(control, Cfname, experiment):
 
     # combine low values
     low = 2.0
-    # control 
+
+    # set up figure
+    fig1, ax1 = plt.subplots(len(experiment.keys())+1,figsize=(15,15))
+
+    # control
+    Ctimings = control['performance'] 
     Cnew_timings = {'other':0}
     for k in Ctimings.keys():
         if float(Ctimings[k]) >= low:
             Cnew_timings[k] = float(Ctimings[k])
         else:
             Cnew_timings['other'] += float(Ctimings[k])
-    #experiment
-    Enew_timings = {'other':0}
-    for k in Etimings.keys():
-        if float(Etimings[k]) >= low:
-            Enew_timings[k] = float(Etimings[k])
-        else:
-            Enew_timings['other'] += float(Etimings[k])
-
-    fig1, ax1 = plt.subplots(2,figsize=(15,15))
     ax1[0].pie(Cnew_timings.values(), labels=Cnew_timings.keys(), autopct='%1.1f%%')
-    ax1[1].pie(Enew_timings.values(), labels=Enew_timings.keys(), autopct='%1.1f%%')
+    Ctitle = title = Cfname+"\n Total Time: "+control['total_time']+" (seconds)"
     ax1[0].set_title(Ctitle,fontsize=10)
-    ax1[1].set_title(Etitle,fontsize=10)
+
+    #experiment
+    for i,e in enumerate(experiment.keys()):
+        Etimings = experiment[e]['performance']
+        Enew_timings = {'other':0}
+        for k in Etimings.keys():
+            if float(Etimings[k]) >= low:
+                Enew_timings[k] = float(Etimings[k])
+            else:
+                Enew_timings['other'] += float(Etimings[k])
+
+        ax1[i+1].pie(Enew_timings.values(), labels=Enew_timings.keys(), autopct='%1.1f%%')
+        Etitle = os.path.basename(e)+"\n Total Time: "+experiment[e]['total_time']+" (seconds)"
+        ax1[i+1].set_title(Etitle,fontsize=10)
+    
     plt.show()
 
 
 def line_info(_plt, Cvalues, Evalues, label):
         colors = []
-        sub = []
-        for i in range(len(Cvalues)):
-            sub.append(Cvalues[i]-Evalues[i])
-        colors.append(_plt.plot(sub))
+        for e in Evalues:
+            sub = []
+            for i in range(len(Cvalues)):
+                sub.append(Cvalues[i]-Evalues[e]['metrics'][label][i])
+            #colors.append(_plt.plot(sub))
+            _plt.plot(sub)
         _plt.set_xlabel('time (min)')
         _plt.set_ylabel(label)
         _plt.grid(linestyle='--')
@@ -101,11 +121,36 @@ def metric_plots(Cvalues, Evalues):
     plts = [pl1, pl2, pl3, pl4]
 
     for i,label in enumerate(Cvalues.keys()):
-        colors = line_info(plts[i], Cvalues[label], Evalues[label], label)
+        colors = line_info(plts[i], Cvalues[label], Evalues, label)
 
     plt.subplots_adjust(bottom=0.25)
+    fig.suptitle("Differences in the Metric Values")
 
     plt.show()
+
+
+def compare_stat_values(Cvalues, Evalues):
+
+    ok = 0
+    fail = 0        
+
+    for v in Cvalues.keys():
+        if Cvalues[v] != Evalues[v]:
+            print("\nDIFFERENCE IN VARIABLE "+v)
+            print(Cvalues[v])
+            print(Evalues[v])
+            fail+=1
+        else:
+            print("\nNO DIFFERENCE IN VARIABLE "+v)
+            ok+=1
+
+    # Print the answer summary for this comparison
+    print("============================================")
+    print(str(ok)+" stat variables are ok.")
+    print(str(fail)+" stat variables show a difference.")
+    print("\n\n")
+
+    return ok,fail
 
 
 def read_logs(json_file):
@@ -124,98 +169,50 @@ def read_logs(json_file):
         print("Working on the log files under: "+f)
         print("Using control file:"+fns[f]['control'])
         
-        ok = 0
-        fail = 0
-
         # parse the control file
         control = parse_it(fns[f]['control'])
-        experiment = parse_it(fns[f]['experiment'])
+        # parse the experiment file(s)
+        experiment={}
+        for i,e in enumerate(fns[f]['experiments']):
+            experiment[e] = parse_it(fns[f]['experiments'][i])
+
         # compare this against the control
-        for v in control['stats'].keys():
-            if control['stats'][v] != experiment['stats'][v]:
-                print("\nDIFFERENCE IN VARIABLE "+v)
-                print(control['stats'][v])
-                print(experiment['stats'][v])
-                fail+=1
-            else:
-                print("\nNO DIFFERENCE IN VARIABLE "+v)
-                ok+=1
+        for e in experiment:
+            print("============================================")
+            print("Summary for "+fns[f]['control']+" compared to "+os.path.basename(e))
+            ok,fail = compare_stat_values(control['stats'], experiment[e]['stats'])
+            total_ok = total_ok+ok
+            total_fail = total_fail+fail
 
         # print and plot performance
-        print("control(%) vs. experiment(%)")
-        for v in control['performance']:
-            print(v+": "+control['performance'][v]+"  "+experiment['performance'][v])
-        performance_plot(control['performance'],fns[f]['control']+"\n Total Time: "+control['total_time']+" (seconds)",
-                         experiment['performance'],fns[f]['experiment']+"\n Total Time: "+experiment['total_time']+" (seconds)")
+        performance_plot(control, os.path.basename(fns[f]['control']),
+                         experiment)
 
         # create metric plots
-        metric_plots(control['metrics'], experiment['metrics'])
+        metric_plots(control['metrics'], experiment)
 
-        # Print the answer summary for this comparison
-        print("============================================")
-        print("Summary for "+fns[f]['control']+" compared to "+fns[f]['experiment'])
-        print(str(ok)+" stat variables are ok.")
-        print(str(fail)+" stat variables show a difference.")
-        print("\n\n")
-        total_ok = total_ok+ok
-        total_fail = total_fail+fail
 
     # Print a summary across all comparisons
     print("============================================")
-    print("Summary for all comparisons")
+    print("Summary for all stat comparisons")
     print(str(total_ok)+" stat variables are ok.")
     print(str(total_fail)+" stat variables show a difference.") 
     print("\n\n")
 
-        # what are the log files to plot
 
-        # create a dictionary that holds parsed values for each of the log files in the list
-        # this list will have the plot values
-        # we also need a list to compare the stat values and performance numbers
+def parseArguments():
 
-# grep for "stat::"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-j", "--json", help="json input file that list the log files to use in analysis.", type=str, default="files.json")
+    args = parser.parse_args()
 
-# DEBUG
-#    for p in values.keys():
-#        print ('\n')
-#        print (p)
-#        for fn in values[p].keys():
-#            print('--------------------')
-#            print(fn + "  " + fns[fn])
-#            print(values[p][fn])
-
-        # create plots
-#        fig, ((pl1, pl2), (pl3,pl4)) = plt.subplots(2, 2, figsize=(12, 10))
-#        plts = [pl1, pl2, pl3, pl4]
-
-
-#  Need to find a better way to collese all of the information within one location!!!!!!!
-
-#    def plot(_plt, i):
-#        colors = []
-#        for fn in sorted(fns.keys()):
-#            if 'auto' in fns[fn]:
-#                colors.append(_plt.plot(values[plots[i]][fn].keys(), values[plots[i]][fn].values())[0].get_color())
-#            else:
-#                colors.append(_plt.plot(values[plots[i]][fn].keys(), values[plots[i]][fn].values(), color=fns[fn])[0].get_color())
-#        _plt.set_xlabel('time (min)')
-#        _plt.set_ylabel(plots[i])
-#        _plt.grid(linestyle='--')
-#        return colors
-#
-#    for i in range(0, len(plts)):
-#        colors = plot(plts[i], i)
-#
-#    lines = []
-#    for c in colors:
-#        lines.append(mlines.Line2D([], [], color=c))
-#
-#    fig.legend(handles=lines, labels=sorted(fns.keys()), loc = "lower center")
-#    plt.subplots_adjust(bottom=0.25)
-#
-#    plt.show()
+    return args   
 
 if __name__ == '__main__':
-    read_logs("files.json")
+
+    # read in arguments
+    args = parseArguments()
+
+    read_logs(args.__dict__['json'])
 
 
