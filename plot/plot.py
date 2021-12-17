@@ -14,6 +14,9 @@ threshold = 1.0e-2
 
 def parse_it(log_file):
 
+    # flag to indicate if run finished okay
+    run_completed = False
+
     # parse the log file
     info = {
               'stats':{},
@@ -60,8 +63,10 @@ def parse_it(log_file):
             elif 'Total time:' in line:
                  info['total_time'] = line.split()[-1].strip()
                  in_timing_section = True
+            elif 'Program terminated normally' in line:
+                run_completed = True
 
-    return info
+    return info, run_completed
 
 
 def performance_plot(control, Cfname, experiment):
@@ -155,6 +160,8 @@ def compare_stat_values(Cvalues, Evalues):
 
 def read_logs(json_file):
 
+    run_completed = {}
+
     # get log names that contain the values to plot
     with open(json_file) as f:
         fns_raw = f.read()
@@ -170,11 +177,11 @@ def read_logs(json_file):
         print("Using control file:"+fns[f]['control'])
         
         # parse the control file
-        control = parse_it(fns[f]['control'])
+        control,run_completed[fns[f]['control']] = parse_it(fns[f]['control'])
         # parse the experiment file(s)
         experiment={}
         for i,e in enumerate(fns[f]['experiments']):
-            experiment[e] = parse_it(fns[f]['experiments'][i])
+            experiment[e],run_completed[fns[f]['experiments'][i]] = parse_it(fns[f]['experiments'][i])
 
         # compare this against the control
         for e in experiment:
@@ -198,6 +205,13 @@ def read_logs(json_file):
     print(str(total_ok)+" stat variables are ok.")
     print(str(total_fail)+" stat variables show a difference.") 
     print("\n\n")
+
+    # Print summary of job completion status
+    print('\n')
+    print("============================================")
+    print("Did the run finish successfully?")
+    for k in run_completed:
+        print(k+": "+str(run_completed[k]))
 
 
 def parseArguments():
