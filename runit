@@ -24,7 +24,7 @@ add_to_experiment_list = True
 
 cm1_code_base = '/glade/scratch/mickelso/CM1/CM1/'
 project_code = 'NTDD0004'
-queue = 'gpudev'
+queue = 'gpgpu'
 namelist_input_list = [
 #    'namelist.asd04-128x512.input'
 #    'namelist.asd04-128x768.input',
