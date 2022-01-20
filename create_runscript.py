@@ -20,11 +20,16 @@ def create_runscript(exe, params, project_code, queue, script_dir, run_dir, log_
 #PBS -q {{ queue }}
 
 module purge
-module load ncarenv/1.3 nvhpc/21.11 cuda/11.4.0 ncarcompilers/0.5.0 openmpi netcdf
+module load ncarenv/1.3 nvhpc/21.11 openmpi netcdf
 
 export LD_LIBRARY_PATH=${NCAR_ROOT_CUDA}/lib64:${LD_LIBRARY_PATH}
 export UCX_MEMTYPE_CACHE=n
-export PCAST_COMPARE=abs=15,summary
+export UCX_TLS=rc,sm,cuda_copy,cuda_ipc
+export OMPI_MCA_pml=ucx
+export OMPI_MCA_btl=self,vader,tcp,smcuda
+export UCX_MEMTYPE_CACHE=n
+export UCX_RNDV_SCHEME=put_zcopy
+export UCX_RNDV_THRESH=2
 
 cd {{ run_dir }}
 
@@ -42,11 +47,7 @@ cd {{ run_dir }}
 #PBS -q casper
 
 module purge
-module load ncarenv/1.3 nvhpc/21.11 cuda/11.4.0 ncarcompilers/0.5.0 openmpi netcdf
-
-export LD_LIBRARY_PATH=${NCAR_ROOT_CUDA}/lib64:${LD_LIBRARY_PATH}
-export UCX_MEMTYPE_CACHE=n
-export PCAST_COMPARE=abs=15,summary
+module load ncarenv/1.3 nvhpc/21.11 openmpi netcdf
 
 cd {{ run_dir }}
 

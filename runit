@@ -31,7 +31,7 @@ namelist_input_list = [
     'namelist.asd04-128x1k.input'
 ]
 exe_list = {
-'cm1-debug.exe': {'args': 'FC=pgf90 USE_MPI=false USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=false DEBUG=true',
+'cm1-debug.exe': {'args': 'FC=pgf90 USE_MPI=false USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=false DEBUG=false',
                           'mpi':False,
                           'nodes':1,
                           'ncpus':1,
@@ -39,7 +39,7 @@ exe_list = {
                           'ngpus':0,
                           'walltime':'00:30:00'
                          },
-'cm1-openacc-debug.exe': {'args': 'FC=pgf90 USE_MPI=false USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=true',
+'cm1-openacc-debug.exe': {'args': 'FC=pgf90 USE_MPI=false USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=false',
                           'mpi':False,
                           'nodes':1,
                           'ncpus':1,
@@ -47,7 +47,7 @@ exe_list = {
                           'ngpus':1,
                           'walltime':'00:30:00'
                          },
-'cm1-mpi-openacc-debug.exe': {'args':'FC=pgf90 USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=true',
+'cm1-mpi-openacc-debug.exe': {'args':'FC=pgf90 USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=false',
                               'mpi':True,
                               'nodes':1,
                               'ncpus':2,
@@ -69,8 +69,12 @@ cwd = os.getcwd()
 
 verNum = datetime.now().strftime("%Y_%m_%d-%I:%M:%S")
 json_file = "logs/files.json"
+if not os.path.exists(cwd+"/logs"):
+    os.makedirs(cwd+"/logs")
 
 err = 0
+problem_builds = []
+successful_builds = []
 
 for exe in exe_list:
 
@@ -87,67 +91,77 @@ for exe in exe_list:
     err=os.system("mv ../run/cm1.exe ../run/" + exe)
     if err!=0:
         print("ERROR: Problem while building")
+        problem_builds.append(exe)
     else:
         print("Success!!!")
+        successful_builds.append(exe)
 
-    for namelist_input in namelist_input_list:
-        # create a log file name
-        # set version number to a time stamp
-        log_fn_base = exe + "." + namelist_input
-        log_fn = cwd + '/logs/' + log_fn_base + "." + verNum + '.log'
+        for namelist_input in namelist_input_list:
+            # create a log file name
+            # set version number to a time stamp
+            log_fn_base = exe + "." + namelist_input
+            log_fn = cwd + '/logs/' + log_fn_base + "." + verNum + '.log'
 
-        print('############################################')
-        print('')
-        print('   Running '+cm1_code_base + '/run/'+exe)
-        print('   Output will be piped to '+log_fn)
-        print('')
-        print ('############################################')
+            print('############################################')
+            print('')
+            print('   Running '+cm1_code_base + '/run/'+exe)
+            print('   Output will be piped to '+log_fn)
+            print('')
+            print ('############################################')
 
-        # set some variables for this setup
-        run_dir = cm1_code_base + "/run/"
-        run_script = cwd+'/'+os.path.basename(log_fn)+".submit.csh" 
+            # set some variables for this setup
+            run_dir = cm1_code_base + "/run/"
+            run_script = cwd+'/'+os.path.basename(log_fn)+".submit.csh" 
 
-        # create the run script to submit to the queue    
-        create_runscript.create_runscript(exe, exe_list[exe], project_code, queue, cwd, run_dir, log_fn, run_script, namelist_input)
+            # create the run script to submit to the queue    
+            create_runscript.create_runscript(exe, exe_list[exe], project_code, queue, cwd, run_dir, log_fn, run_script, namelist_input)
 
-        # submit the run script to the queue
-        err=os.system("qsub "+run_script)
-        if err!=0:
-            print("ERROR: Problem submitting job to the queue")
-        else:
-            print("Success!!! Job is in the queue.")
+            # submit the run script to the queue
+            err=os.system("qsub "+run_script)
+            if err!=0:
+                print("ERROR: Problem submitting job to the queue")
+            else:
+                print("Success!!! Job is in the queue.")
 
 
-        # change back to this scripts directory
-        os.chdir(cwd)
+            # change back to this scripts directory
+            os.chdir(cwd)
 
-        #####################
-        #
-        # Update the json file with new log file
-        #
-        #####################
+            #####################
+            #
+            # Update the json file with new log file
+            #
+            #####################
 
 #run_type = "control"
 #run_type = "experiment"
 
-        # Read the json file into memory in order to add the new file to the list  
-        # If it doesn't exist, create an empty dictionary.
-        if os.path.exists(json_file):
-            with open(json_file) as f:
-                fns_raw = f.read()
-            fns = json.loads(fns_raw)
-        else:
-            fns = {}
-        if log_fn_base not in fns.keys():
-             fns[log_fn_base] = {"experiments":[], "control":""}
-        if run_type is "experiment":
-            if add_to_experiment_list:
-                fns[log_fn_base]['experiments'].append(log_fn)
+            # Read the json file into memory in order to add the new file to the list  
+            # If it doesn't exist, create an empty dictionary.
+            if os.path.exists(json_file):
+                with open(json_file) as f:
+                    fns_raw = f.read()
+                fns = json.loads(fns_raw)
             else:
-                fns[log_fn_base]['experiments'] = [log_fn]
-        if run_type is "control":
-            fns[log_fn_base]['control'] = log_fn
-        with open(json_file, 'w') as f:
-            json.dump(fns, f, indent=4)
+                fns = {}
+            if log_fn_base not in fns.keys():
+                 fns[log_fn_base] = {"experiments":[], "control":""}
+            if run_type is "experiment":
+                if add_to_experiment_list:
+                    fns[log_fn_base]['experiments'].append(log_fn)
+                else:
+                    fns[log_fn_base]['experiments'] = [log_fn]
+            if run_type is "control":
+                fns[log_fn_base]['control'] = log_fn
+            with open(json_file, 'w') as f:
+                json.dump(fns, f, indent=4)
 
+print("============================================")
+print("BUILD SUMMARY")
+print("Successful builds:")
+for b in successful_builds:
+    print(b)
+print("Unsuccessful builds:")
+for b in problem_builds:
+    print(b)
 
