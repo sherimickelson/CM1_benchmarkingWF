@@ -67,7 +67,8 @@ exe_list = {
 
 cwd = os.getcwd()
 
-verNum = datetime.now().strftime("%Y_%m_%d-%I:%M:%S")
+verNum_temp = datetime.now().strftime("%Y_%m_%d-%I:%M:%S")
+verNum = verNum_temp.replace(":","_")
 json_file = "logs/files.json"
 if not os.path.exists(cwd+"/logs"):
     os.makedirs(cwd+"/logs")
