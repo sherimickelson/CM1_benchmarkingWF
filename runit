@@ -22,24 +22,28 @@ run_type = "experiment"
 add_to_experiment_list = True
 
 
-cm1_code_base = '/glade/scratch/mickelso/CM1/CM1/'
+cm1_code_base = '/glade/scratch/dennis/CM1_verify'
 project_code = 'NTDD0004'
-queue = 'gpgpu'
+queue = 'casper'
 namelist_input_list = [
 #    'namelist.asd04-128x512.input'
 #    'namelist.asd04-128x768.input',
-    'namelist.asd04-128x1k.input'
+#    'namelist.asd04-128x1k.input'
+#    'namelist.verify.input'
+    'namelist.sas.input'
+#    'namelist.asd03-128x512.input',
+#    'namelist.asd04-128x512.input'
 ]
 exe_list = {
-'cm1-debug.exe': {'args': 'FC=pgf90 USE_MPI=false USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=false DEBUG=false',
-                          'mpi':False,
+'cm1-mpi.exe': {'args': 'FC=pgf90 USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=false DEBUG=false',
+                          'mpi':True,
                           'nodes':1,
-                          'ncpus':1,
-                          'mpiprocs':1,
+                          'ncpus':36,
+                          'mpiprocs':36,
                           'ngpus':0,
                           'walltime':'00:30:00'
                          },
-'cm1-openacc-debug.exe': {'args': 'FC=pgf90 USE_MPI=false USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=false',
+'cm1-openacc.exe': {'args': 'FC=pgf90 USE_MPI=false USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=false',
                           'mpi':False,
                           'nodes':1,
                           'ncpus':1,
@@ -47,14 +51,14 @@ exe_list = {
                           'ngpus':1,
                           'walltime':'00:30:00'
                          },
-'cm1-mpi-openacc-debug.exe': {'args':'FC=pgf90 USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=false',
-                              'mpi':True,
-                              'nodes':1,
-                              'ncpus':2,
-                              'mpiprocs':2,
-                              'ngpus':2,
-                              'walltime':'00:30:00'                                
-                             }
+'cm1-mpi-openacc.exe': {'args':'FC=pgf90 USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=false',
+                          'mpi':True,
+                          'nodes':1,
+                          'ncpus':2,
+                          'mpiprocs':2,
+                          'ngpus':2,
+                          'walltime':'00:30:00'                                
+                         }
 
 }
 
