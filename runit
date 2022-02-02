@@ -22,7 +22,7 @@ run_type = "experiment"
 add_to_experiment_list = True
 
 
-cm1_code_base = '/glade/scratch/dennis/CM1_verify'
+cm1_code_base = '/path/to/CM1/code/base/'
 project_code = 'NTDD0004'
 queue = 'gpgpu'
 namelist_input_list = [
@@ -76,6 +76,8 @@ verNum = verNum_temp.replace(":","_")
 json_file = "logs/files.json"
 if not os.path.exists(cwd+"/logs"):
     os.makedirs(cwd+"/logs")
+if not os.path.exists(cwd+"/run_scripts"):
+    os.makedirs(cwd+"/run_scripts")
 
 err = 0
 problem_builds = []
@@ -116,7 +118,7 @@ for exe in exe_list:
 
             # set some variables for this setup
             run_dir = cm1_code_base + "/run/"
-            run_script = cwd+'/'+os.path.basename(log_fn)+".submit.csh" 
+            run_script = cwd+'/run_scripts/'+os.path.basename(log_fn)+".submit.csh" 
 
             # create the run script to submit to the queue    
             create_runscript.create_runscript(exe, exe_list[exe], project_code, queue, cwd, run_dir, log_fn, run_script, namelist_input)
