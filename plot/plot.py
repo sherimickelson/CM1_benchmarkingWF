@@ -55,11 +55,16 @@ def parse_it(log_file):
                         info['stats'][split[1].split()[-1].strip()] = [split[2].split()[0].strip()]
             # metric stuff
             elif "Metric:" in line:
-               info['metrics'][line.split('Metric:')[-1].strip().split('=')[0].strip()].append(float(line.split()[-1]))               
+               key = line.split('Metric:')[-1].strip().split('=')[0].strip()
+               value = line.split()[-1]
+               if key in info['metrics'].keys():
+                   info['metrics'][key].append(float(value))               
             # performance and total time collection
-            elif in_timing_section and ':' in line and len(line.split())==4:
+            elif in_timing_section and ':' in line and len(line.split())==4 and 'Warning' not in line:
                 split = line.split()
-                info['performance'][split[0].strip()] = split[-1].strip().replace("%","")
+                key = split[0].strip()
+                value = split[-1].strip().replace("%","")
+                info['performance'][key] = value 
             elif 'Total time:' in line:
                  info['total_time'] = line.split()[-1].strip()
                  in_timing_section = True
@@ -111,6 +116,7 @@ def line_info(_plt, Cvalues, Evalues, label):
         for e in Evalues:
             sub = []
             for i in range(len(Cvalues)):
+                print(Cvalues[i]-Evalues[e]['metrics'][label][i])
                 sub.append(Cvalues[i]-Evalues[e]['metrics'][label][i])
             #colors.append(_plt.plot(sub))
             _plt.plot(sub)
@@ -217,7 +223,7 @@ def read_logs(json_file):
 def parseArguments():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-j", "--json", help="json input file that list the log files to use in analysis.", type=str, default="files.json")
+    parser.add_argument("-j", "--json", help="json input file that list the log files to use in analysis.", type=str, default="../logs/files.json")
     args = parser.parse_args()
 
     return args   
