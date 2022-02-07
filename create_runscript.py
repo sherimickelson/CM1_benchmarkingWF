@@ -27,7 +27,6 @@ export UCX_MEMTYPE_CACHE=n
 export UCX_TLS=rc,sm,cuda_copy,cuda_ipc
 export OMPI_MCA_pml=ucx
 export OMPI_MCA_btl=self,vader,tcp,smcuda
-export UCX_MEMTYPE_CACHE=n
 export UCX_RNDV_SCHEME=put_zcopy
 export UCX_RNDV_THRESH=2
 
