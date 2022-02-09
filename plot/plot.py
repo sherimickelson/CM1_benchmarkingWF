@@ -115,11 +115,13 @@ def line_info(_plt, Cvalues, Evalues, label):
         colors = []
         for e in Evalues:
             sub = []
-            for i in range(len(Cvalues)):
-                print(Cvalues[i]-Evalues[e]['metrics'][label][i])
-                sub.append(Cvalues[i]-Evalues[e]['metrics'][label][i])
-            #colors.append(_plt.plot(sub))
-            _plt.plot(sub)
+            if (len(Cvalues) != len(Evalues[e]['metrics'][label])):
+                print("The number of values to compare for label '"+label+"' are different between the control and experiment and the difference cannot be plotted.")
+            else:
+                for i in range(len(Cvalues)):
+                    sub.append(Cvalues[i]-Evalues[e]['metrics'][label][i])
+                #colors.append(_plt.plot(sub))
+                _plt.plot(sub)
         _plt.set_xlabel('time (min)')
         _plt.set_ylabel(label)
         _plt.grid(linestyle='--')
