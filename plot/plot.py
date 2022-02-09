@@ -74,7 +74,7 @@ def parse_it(log_file):
     return info, run_completed
 
 
-def performance_plot(control, Cfname, experiment):
+def performance_plot(control, Cfname, experiment, f, save_plot):
 
     # combine low values
     low = 2.0
@@ -108,8 +108,10 @@ def performance_plot(control, Cfname, experiment):
         Etitle = os.path.basename(e)+"\n Total Time: "+experiment[e]['total_time']+" (seconds)"
         ax1[i+1].set_title(Etitle,fontsize=10)
     
-    plt.show()
-
+    if save_plot:
+        plt.savefig(f+'-performance.png')
+    else:
+        plt.show()
 
 def line_info(_plt, Cvalues, Evalues, label):
         colors = []
@@ -128,7 +130,7 @@ def line_info(_plt, Cvalues, Evalues, label):
         return colors
 
 
-def metric_plots(Cvalues, Evalues):
+def metric_plots(Cvalues, Evalues, f, save_plot):
 
     fig, ((pl1, pl2), (pl3,pl4)) = plt.subplots(2, 2, figsize=(12, 10))
     plts = [pl1, pl2, pl3, pl4]
@@ -137,9 +139,12 @@ def metric_plots(Cvalues, Evalues):
         colors = line_info(plts[i], Cvalues[label], Evalues, label)
 
     plt.subplots_adjust(bottom=0.25)
-    fig.suptitle("Differences in the Metric Values")
+    fig.suptitle("Differences in the Metric Values \n"+f)
 
-    plt.show()
+    if save_plot:
+        plt.savefig(f+'-metric.png') 
+    else:
+        plt.show()
 
 
 def compare_stat_values(Cvalues, Evalues):
@@ -147,26 +152,30 @@ def compare_stat_values(Cvalues, Evalues):
     ok = 0
     fail = 0        
 
-    for v in Cvalues.keys():
-        if Cvalues[v] != Evalues[v]:
-            print("\nDIFFERENCE IN VARIABLE "+v)
-            print(Cvalues[v])
-            print(Evalues[v])
-            fail+=1
-        else:
-            print("\nNO DIFFERENCE IN VARIABLE "+v)
-            ok+=1
+    if len(Cvalues) != len(Evalues):
+        print("============================================")
+        print("There is a mismatch in the amount of ccomparisons between the experiment v. control.  Doulble check that both runs completed and that they ran for the same number of timesteps.")
+    else:
+        for v in Cvalues.keys():
+            if Cvalues[v] != Evalues[v]:
+                print("\nDIFFERENCE IN VARIABLE "+v)
+                print(Cvalues[v])
+                print(Evalues[v])
+                fail+=1
+            else:
+                print("\nNO DIFFERENCE IN VARIABLE "+v)
+                ok+=1
 
-    # Print the answer summary for this comparison
-    print("============================================")
-    print(str(ok)+" stat variables are ok.")
-    print(str(fail)+" stat variables show a difference.")
+        # Print the answer summary for this comparison
+        print("============================================")
+        print(str(ok)+" stat variables are ok.")
+        print(str(fail)+" stat variables show a difference.")
     print("\n\n")
 
     return ok,fail
 
 
-def read_logs(json_file):
+def read_logs(json_file, save_plot):
 
     run_completed = {}
 
@@ -201,10 +210,10 @@ def read_logs(json_file):
 
         # print and plot performance
         performance_plot(control, os.path.basename(fns[f]['control']),
-                         experiment)
+                         experiment, f, save_plot)
 
         # create metric plots
-        metric_plots(control['metrics'], experiment)
+        metric_plots(control['metrics'], experiment, f, save_plot)
 
 
     # Print a summary across all comparisons
@@ -222,10 +231,12 @@ def read_logs(json_file):
         print(k+": "+str(run_completed[k]))
 
 
+
 def parseArguments():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-j", "--json", help="json input file that list the log files to use in analysis.", type=str, default="../logs/files.json")
+    parser.add_argument("-s", "--save", help="True/False to save plot figures as png files.", type=str, default='False')
     args = parser.parse_args()
 
     return args   
@@ -234,7 +245,12 @@ if __name__ == '__main__':
 
     # read in arguments
     args = parseArguments()
+    save_plot = args.__dict__['save']
+    if save_plot.upper() == 'TRUE':
+         b_save_plot = True
+    else:
+         b_save_plot = False
 
-    read_logs(args.__dict__['json'])
+    read_logs(args.__dict__['json'], b_save_plot)
 
 
