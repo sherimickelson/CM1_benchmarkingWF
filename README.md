@@ -1,3 +1,11 @@
+# Running this code on NCAR's Casper cluster
+You'll want to make sure that you have loaded Python and some basic Python libraries before you run this code.
+First, make sure you have conda loaded in your environment.  If it is not there, execute
+`module load conda`
+Next, execute
+`conda activate npl`
+Then you should be ready to run the following scripts.
+
 # CM1 Benchmarking Workflow
 This work was designed to be a testing framework used to verify changes that are made to the CM1 code, specifically for the GPU branch of the code. 
 
