@@ -121,7 +121,10 @@ def line_info(_plt, Cvalues, Evalues, label):
                 print("The number of values to compare for label '"+label+"' are different between the control and experiment and the difference cannot be plotted.")
             else:
                 for i in range(len(Cvalues)):
-                    sub.append(Cvalues[i]-Evalues[e]['metrics'][label][i])
+                    if (max(abs(Evalues[e]['metrics'][label][i]),abs(Cvalues[i])) != 0):
+                        sub.append(abs(Evalues[e]['metrics'][label][i]-Cvalues[i])/max(abs(Evalues[e]['metrics'][label][i]),abs(Cvalues[i])))
+                    else: #both are zero
+                        sub.append(0.0)
                 #colors.append(_plt.plot(sub))
                 _plt.plot(sub)
         _plt.set_xlabel('time (min)')
@@ -139,7 +142,7 @@ def metric_plots(Cvalues, Evalues, f, save_plot):
         colors = line_info(plts[i], Cvalues[label], Evalues, label)
 
     plt.subplots_adjust(bottom=0.25)
-    fig.suptitle("Differences in the Metric Values \n"+f)
+    fig.suptitle("The relative differences in the Metric Values |(exp-ctrl)|/max(|exp|,|ctrl|)\n"+f)
 
     if save_plot:
         plt.savefig(f+'-metric.png') 
@@ -158,9 +161,19 @@ def compare_stat_values(Cvalues, Evalues):
     else:
         for v in Cvalues.keys():
             if Cvalues[v] != Evalues[v]:
-                print("\nDIFFERENCE IN VARIABLE "+v)
-                print(Cvalues[v])
-                print(Evalues[v])
+                #print("\nDIFFERENCE IN VARIABLE "+v)
+                #print("Control values: ")
+                #print(Cvalues[v])
+                #print("Experiment values:")
+                #print(Evalues[v])
+                rd = []
+                for i in range(0,len(Cvalues[v])):
+                    if (max(abs(float(Evalues[v][i])),abs(float(Cvalues[v][i]))) != 0):
+                        rd.append((abs(float(Evalues[v][i])-float(Cvalues[v][i])))/max(abs(float(Evalues[v][i])),abs(float(Cvalues[v][i]))))
+                    else: #both are zero
+                        rd.append("0.0")
+                print("\nRELATIVE DIFFERENCE IN VARIABLE "+v+" : |(exp-ctrl)|/max(|exp|,|ctrl|)")
+                print(rd)
                 fail+=1
             else:
                 print("\nNO DIFFERENCE IN VARIABLE "+v)
