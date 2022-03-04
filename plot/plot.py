@@ -9,8 +9,7 @@ import argparse
 from collections import OrderedDict
 
 # constants
-threshold = 1.0e-2
-
+threshold = 1.0e-6
 
 def parse_it(log_file):
 
@@ -155,6 +154,8 @@ def compare_stat_values(Cvalues, Evalues):
     ok = 0
     fail = 0        
 
+    diff = {}
+
     if len(Cvalues) != len(Evalues):
         print("============================================")
         print("There is a mismatch in the amount of ccomparisons between the experiment v. control.  Doulble check that both runs completed and that they ran for the same number of timesteps.")
@@ -167,14 +168,20 @@ def compare_stat_values(Cvalues, Evalues):
                 #print("Experiment values:")
                 #print(Evalues[v])
                 rd = []
+                flag = False
                 for i in range(0,len(Cvalues[v])):
                     if (max(abs(float(Evalues[v][i])),abs(float(Cvalues[v][i]))) != 0):
-                        rd.append((abs(float(Evalues[v][i])-float(Cvalues[v][i])))/max(abs(float(Evalues[v][i])),abs(float(Cvalues[v][i]))))
+                        value = (abs(float(Evalues[v][i])-float(Cvalues[v][i])))/max(abs(float(Evalues[v][i])),abs(float(Cvalues[v][i])))
+                        rd.append(value)
+                        if value > threshold:
+                            flag = True
                     else: #both are zero
-                        rd.append("0.0")
-                print("\nRELATIVE DIFFERENCE IN VARIABLE "+v+" : |(exp-ctrl)|/max(|exp|,|ctrl|)")
-                print(rd)
-                fail+=1
+                        rd.append(0.0)
+                if flag:
+                    print("\nRELATIVE DIFFERENCE IN VARIABLE "+v+" : |(exp-ctrl)|/max(|exp|,|ctrl|)")
+                    print(rd)
+                    diff[v] = rd
+                    fail+=1
             else:
                 print("\nNO DIFFERENCE IN VARIABLE "+v)
                 ok+=1
@@ -184,6 +191,9 @@ def compare_stat_values(Cvalues, Evalues):
         print(str(ok)+" stat variables are ok.")
         print(str(fail)+" stat variables show a difference.")
     print("\n\n")
+#    plt.legend(diff.keys())
+#    plt.plot(diff.values())
+#    plt.show()
 
     return ok,fail
 
