@@ -142,7 +142,7 @@ for exe in exe_list:
         for namelist_input in namelist_input_list:
             # create a log file name
             # set version number to a time stamp
-            log_fn_base = exe + "." + FC_info + "." + HW + "." + namelist_input
+            log_fn_base = exe + "." + machine + "." + "HW" + "." + FC_info + "." + namelist_input
             log_fn = cwd + '/logs/' + log_fn_base + "." + verNum + '.log'
 
             print('############################################')
