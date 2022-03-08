@@ -1,7 +1,7 @@
 from jinja2 import Template
 import os
 
-def create_runscript(exe, params, project_code, FC, queue, module_load, script_dir, run_dir, log_file, run_script, namelist_input):
+def create_runscript(exe, params, project_code, queue, module_load, script_dir, run_dir, log_file, run_script, namelist_input):
 
     if params['mpi'] is True:
         mpi = 'mpirun -n '+str(params['mpiprocs'])
