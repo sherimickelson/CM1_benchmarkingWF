@@ -21,12 +21,7 @@ run_type = "control"
 # experiment sections.
 add_to_experiment_list = True
 
-<<<<<<< HEAD:runit.py
-cm1_code_base = '/glade/scratch/sunjian/temp/CM1/'
-=======
-
 cm1_code_base = '/path/to/CM1/code/base/'
->>>>>>> d3bdbd7ad36d91ad9682cb55045f005d4ea16a65:runit
 project_code = 'NTDD0004'
 queue = 'casper'
 machine = 'casper'
@@ -131,7 +126,7 @@ for exe in exe_list:
         sys.exit(FC_info + " is provided but only ifort, pgf90 and nvfortran are supported!")
 
     err = os.system("make clean")
-    err = os.system("make -j 4 " + exe_list[exe]['args'])
+    err = os.system(module_load + "; make -j 4 " + exe_list[exe]['args'])
     err = os.system("mv ../run/cm1.exe ../run/" + exe)
     if err != 0:
         print("ERROR: Problem while building")
