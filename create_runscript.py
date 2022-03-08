@@ -1,7 +1,7 @@
 from jinja2 import Template
 import os
 
-def create_runscript(exe, params, project_code, queue, script_dir, run_dir, log_file, run_script, namelist_input):
+def create_runscript(exe, params, project_code, FC, queue, module_load, script_dir, run_dir, log_file, run_script, namelist_input):
 
     if params['mpi'] is True:
         mpi = 'mpirun -n '+str(params['mpiprocs'])
@@ -19,8 +19,7 @@ def create_runscript(exe, params, project_code, queue, script_dir, run_dir, log_
 #PBS -A {{ project_code }}
 #PBS -q {{ queue }}
 
-module purge
-module load ncarenv/1.3 nvhpc/21.11 openmpi netcdf
+{{ module_load }}
 
 export LD_LIBRARY_PATH=${NCAR_ROOT_CUDA}/lib64:${LD_LIBRARY_PATH}
 export UCX_MEMTYPE_CACHE=n
@@ -43,10 +42,9 @@ cd {{ run_dir }}
 #PBS -l walltime={{ walltime }}
 #PBS -j oe
 #PBS -A {{ project_code }}
-#PBS -q casper
+#PBS -q {{ queue }}
 
-module purge
-module load ncarenv/1.3 nvhpc/21.11 openmpi netcdf
+{{ module_load }}
 
 cd {{ run_dir }}
 
@@ -67,7 +65,8 @@ cd {{ run_dir }}
               exe = exe,
               namelist_input = namelist_input,
               script_dir = script_dir,
-              log_file = log_file 
+              log_file = log_file,
+              module_load = module_load
             )
 
     with open(run_script, 'w') as f:
