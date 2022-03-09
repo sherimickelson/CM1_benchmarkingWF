@@ -21,7 +21,7 @@ run_type = "control"
 # experiment sections.
 add_to_experiment_list = True
 
-cm1_code_base = '/glade/scratch/mickelso/CM1/CM1/'
+cm1_code_base = '/path/to/CM1/code/base/'
 project_code = 'NTDD0004'
 queue = 'casper'
 machine = 'casper'
