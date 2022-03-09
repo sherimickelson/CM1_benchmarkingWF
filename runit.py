@@ -84,7 +84,7 @@ for exe in exe_list:
     args_dict = dict(x.split("=") for x in args_list.split(" "))   
     FC_info = args_dict['FC'].lower()
     OpenACC_info = args_dict['USE_OPENACC'].lower()
-    if  OpenACC_info:
+    if  OpenACC_info == "true":
         HW = "GPU"
     else:
         HW = "CPU"
