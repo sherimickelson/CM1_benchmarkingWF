@@ -13,15 +13,15 @@ import create_runscript
 #####################
 
 ### IMPORTANT: uncomment the type of run this is
-#run_type = "control"
-run_type = "experiment"
+run_type = "control"
+#run_type = "experiment"
 
 # This code creates a json file that lists the log file to use in the plots.  This flag controls the ability to
 # add this set of log files to the existing experiment file lists or should this set be the only files listed under the 
 # experiment sections.
 add_to_experiment_list = True
 
-cm1_code_base = '/glade/scratch/sunjian/temp/CM1/'
+cm1_code_base = '/path/to/CM1/code/base/'
 project_code = 'NTDD0004'
 queue = 'casper'
 machine = 'casper'
