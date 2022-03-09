@@ -13,15 +13,15 @@ import create_runscript
 #####################
 
 ### IMPORTANT: uncomment the type of run this is
-run_type = "control"
-#run_type = "experiment"
+#run_type = "control"
+run_type = "experiment"
 
 # This code creates a json file that lists the log file to use in the plots.  This flag controls the ability to
 # add this set of log files to the existing experiment file lists or should this set be the only files listed under the 
 # experiment sections.
 add_to_experiment_list = True
 
-cm1_code_base = '/path/to/CM1/code/base/'
+cm1_code_base = '/glade/scratch/sunjian/temp/CM1/'
 project_code = 'NTDD0004'
 queue = 'casper'
 machine = 'casper'
@@ -85,9 +85,9 @@ for exe in exe_list:
     FC_info = args_dict['FC'].lower()
     OpenACC_info = args_dict['USE_OPENACC'].lower()
     if  OpenACC_info:
-        HW = "CPU"
-    else:
         HW = "GPU"
+    else:
+        HW = "CPU"
 
     # change to the src directory to build 
     print('\n\n\n\n\n\n')
@@ -126,7 +126,7 @@ for exe in exe_list:
         sys.exit(FC_info + " is provided but only ifort, pgf90 and nvfortran are supported!")
 
     err = os.system("make clean")
-    err = os.system(module_load + "; make -j 4 " + exe_list[exe]['args'])
+    err = os.system(module_load + " ; make -j 4 " + exe_list[exe]['args'])
     err = os.system("mv ../run/cm1.exe ../run/" + exe)
     if err != 0:
         print("ERROR: Problem while building")
