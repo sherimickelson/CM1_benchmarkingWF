@@ -21,7 +21,7 @@ run_type = "control"
 # experiment sections.
 add_to_experiment_list = True
 
-cm1_code_base = '/path/to/CM1/code/base/'
+cm1_code_base = '/glade/scratch/mickelso/CM1/CM1/'
 project_code = 'NTDD0004'
 queue = 'casper'
 machine = 'casper'
@@ -126,7 +126,7 @@ for exe in exe_list:
         sys.exit(FC_info + " is provided but only ifort, pgf90 and nvfortran are supported!")
 
     err = os.system("make clean")
-    err = os.system(module_load + " ; make -j 4 " + exe_list[exe]['args'])
+    err = os.system("source /etc/profile.d/modules.sh ; " + module_load + " ; make -j 4 " + exe_list[exe]['args'])
     err = os.system("mv ../run/cm1.exe ../run/" + exe)
     if err != 0:
         print("ERROR: Problem while building")
