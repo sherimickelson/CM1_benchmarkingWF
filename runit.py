@@ -13,8 +13,8 @@ import create_runscript
 #####################
 
 ### IMPORTANT: uncomment the type of run this is
-run_type = "control"
-#run_type = "experiment"
+#run_type = "control"
+run_type = "experiment"
 
 # This code creates a json file that lists the log file to use in the plots.  This flag controls the ability to
 # add this set of log files to the existing experiment file lists or should this set be the only files listed under the 
@@ -31,7 +31,9 @@ namelist_input_list = [
 #    'namelist.asd04-128x512.input'
 ]
 exe_list = {
-#'cm1-mpi.exe': {'args': 'FC=ifort USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=false DEBUG=false',
+#
+# control
+#'cm1-mpi.exe': {'args': 'FC=nvfortran USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=false DEBUG=false',
 #                          'mpi':True,
 #                          'nodes':1,
 #                          'ncpus':36,
@@ -39,14 +41,16 @@ exe_list = {
 #                          'ngpus':0,
 #                          'walltime':'00:30:00'
 #                         }
-#'cm1-openacc.exe': {'args': 'FC=nvfortran USE_MPI=false USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=false',
-#                          'mpi':False,
-#                          'nodes':1,
-#                          'ncpus':1,
-#                          'mpiprocs':1,
-#                          'ngpus':1,
-#                          'walltime':'00:30:00'
-#                         },
+#
+# Experiment 
+'cm1-openacc.exe': {'args': 'FC=nvfortran USE_MPI=false USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=false',
+                          'mpi':False,
+                          'nodes':1,
+                          'ncpus':1,
+                          'mpiprocs':1,
+                          'ngpus':1,
+                          'walltime':'00:30:00'
+                         },
 'cm1-mpi-openacc.exe': {'args':'FC=nvfortran USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=false',
                           'mpi':True,
                           'nodes':1,
