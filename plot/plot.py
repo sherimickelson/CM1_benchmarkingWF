@@ -125,10 +125,11 @@ def line_info(_plt, Cvalues, Evalues, label):
                     else: #both are zero
                         sub.append(0.0)
                 #colors.append(_plt.plot(sub))
-                _plt.plot(sub)
+                _plt.plot(sub,label=os.path.basename(e))
         _plt.set_xlabel('time (min)')
         _plt.set_ylabel(label)
         _plt.grid(linestyle='--')
+        _plt.legend()
         return colors
 
 
