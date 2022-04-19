@@ -31,10 +31,12 @@ def parse_it(log_file):
     #  in order to verify correctness
     info['metrics'] = {
         'LWP (g/m2)': [],
-        'cloud fraction (%)': [],
+        'boundary-layer depth variance (m)': [],
         'max w variance (m2/s2)': [],
-        'preciptation rate (mm/day)':[]
+        'boundary-layer depth (m)': []
     }
+    #    'cloud fraction (%)': [],
+    #    'preciptation rate (mm/day)':[]
 
     # open the log file and pull out stat, metric, and timing information
     with open(log_file) as cfile:
@@ -126,7 +128,7 @@ def line_info(_plt, Cvalues, Evalues, label):
                         sub.append(0.0)
                 #colors.append(_plt.plot(sub))
                 _plt.plot(sub,label=os.path.basename(e))
-        _plt.set_xlabel('time (min)')
+        _plt.set_xlabel('diagnostic timestep')
         _plt.set_ylabel(label)
         _plt.grid(linestyle='--')
         _plt.legend()
