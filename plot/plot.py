@@ -153,10 +153,11 @@ def metric_plots(Cvalues, Evalues, f, save_plot):
         plt.show()
 
 
-def compare_stat_values(Cvalues, Evalues):
+def compare_stat_values(Cvalues, Evalues, verbose):
 
     ok = 0
     fail = 0        
+    small = 0
 
     diff = {}
     rel_err = []
@@ -174,17 +175,25 @@ def compare_stat_values(Cvalues, Evalues):
                     if (max(abs(float(Evalues[v][i])),abs(float(Cvalues[v][i]))) != 0):
                         value = (abs(float(Evalues[v][i])-float(Cvalues[v][i])))/max(abs(float(Evalues[v][i])),abs(float(Cvalues[v][i])))
                         rd.append(value)
-                        if value > threshold:
-                            flag = True
                     else: #both are zero
                         rd.append(0.0)
+                rd_avg = np.average(rd)
+                if rd_avg > threshold:
+                    flag = True
                 if flag:
                     diff[v] = rd
-                    rel_err.append(np.average(rd))
+                    rel_err.append(rd_avg)
                     key.append(v)
                     fail+=1
+                else:
+                    small+=1
+                    if verbose:
+                        print("\nDIFFERENCE DETECTED IN VARIABLE "+v+
+                              ", but the mean relative difference is smaller than "+
+                              str(threshold))
             else:
-                print("\nNO DIFFERENCE IN VARIABLE "+v)
+                if verbose:
+                    print("\nNO DIFFERENCE IN VARIABLE "+v)
                 ok+=1
         # sort based on the mean error; ascending order
         ind = np.lexsort((key,rel_err))
@@ -202,16 +211,17 @@ def compare_stat_values(Cvalues, Evalues):
         # Print the answer summary for this comparison
         print("============================================")
         print(str(ok)+" stat variables are identical.")
-        print(str(fail)+" stat variables show a relative difference larger than "+str(threshold))
+        print(str(fail)+" stat variables show a mean relative difference > "+str(threshold))
+        print(str(small)+" stat variables show a mean relative difference <= "+str(threshold))
     print("\n\n")
 #    plt.legend(diff.keys())
 #    plt.plot(diff.values())
 #    plt.show()
 
-    return ok,fail
+    return ok,fail,small
 
 
-def read_logs(json_file, save_plot):
+def read_logs(json_file, save_plot, verbose):
 
     run_completed = {}
 
@@ -222,7 +232,8 @@ def read_logs(json_file, save_plot):
    
     total_ok = 0
     total_fail = 0
- 
+    total_small = 0
+
     # loop through the different sets of log files
     for f in sorted(fns.keys()):
 
@@ -240,9 +251,10 @@ def read_logs(json_file, save_plot):
         for e in experiment:
             print("============================================")
             print("Summary for "+fns[f]['control']+" compared to "+os.path.basename(e))
-            ok,fail = compare_stat_values(control['stats'], experiment[e]['stats'])
+            ok,fail,small = compare_stat_values(control['stats'], experiment[e]['stats'], verbose)
             total_ok = total_ok+ok
             total_fail = total_fail+fail
+            total_small = total_small+small
 
         # print and plot performance
         performance_plot(control, os.path.basename(fns[f]['control']),
@@ -256,7 +268,8 @@ def read_logs(json_file, save_plot):
     print("============================================")
     print("Summary for all stat comparisons")
     print(str(total_ok)+" stat variables are identical.")
-    print(str(total_fail)+" stat variables show a difference larger than "+str(threshold)) 
+    print(str(total_fail)+" stat variables show a mean relative difference > "+str(threshold)) 
+    print(str(total_small)+" stat variables show a mean relative difference <= "+str(threshold)) 
     print("\n\n")
 
     # Print summary of job completion status
@@ -273,6 +286,7 @@ def parseArguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-j", "--json", help="json input file that list the log files to use in analysis.", type=str, default="../logs/files.json")
     parser.add_argument("-s", "--save", help="True/False to save plot figures as png files.", type=str, default='False')
+    parser.add_argument("-v", "--verbose", help="Use this flag to show more detailed output.", action="store_true")
     args = parser.parse_args()
 
     return args   
@@ -287,6 +301,6 @@ if __name__ == '__main__':
     else:
          b_save_plot = False
 
-    read_logs(args.__dict__['json'], b_save_plot)
+    read_logs(args.__dict__['json'], b_save_plot, args.verbose)
 
 
