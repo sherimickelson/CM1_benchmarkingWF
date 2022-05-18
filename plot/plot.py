@@ -126,7 +126,6 @@ def line_info(_plt, Cvalues, Evalues, label):
             if (len(Cvalues) != len(Evalues[e]['metrics'][label])):
                 print("The number of values to compare for label '"+label+"' are different between the control and experiment and the difference cannot be plotted.")
             else:
-                print("len(Cvalues): ",len(Cvalues))
                 for i in range(min(len(Cvalues),maxTime)):
                     if (max(abs(Evalues[e]['metrics'][label][i]),abs(Cvalues[i])) != 0):
                         sub.append(abs(Evalues[e]['metrics'][label][i]-Cvalues[i])/max(abs(Evalues[e]['metrics'][label][i]),abs(Cvalues[i])))
