@@ -31,12 +31,15 @@ def parse_it(log_file):
     #  Grep for these strings in the files specified within the json file
     #  in order to verify correctness
     info['metrics'] = {
-        'LWP (g/m2)': [],
-        'boundary-layer depth variance (m)': [],
-        'max w variance (m2/s2)': [],
+        'u component of 10m wind speed (m/s)': [],
+        'v component of 10m wind speed (m/s)': [],
+        'horiz wind speed at 10m (m/s)': [],
         'boundary-layer depth (m)': []
     }
+    #    'LWP (g/m2)': [],
+    #    'boundary-layer depth variance (m)': [],
     #    'cloud fraction (%)': [],
+    #    'max w variance (m2/s2)': [],
     #    'preciptation rate (mm/day)':[]
 
     # open the log file and pull out stat, metric, and timing information
@@ -117,12 +120,13 @@ def performance_plot(control, Cfname, experiment, f, save_plot):
 
 def line_info(_plt, Cvalues, Evalues, label):
         colors = []
+        maxTime=41;
         for e in Evalues:
             sub = []
             if (len(Cvalues) != len(Evalues[e]['metrics'][label])):
                 print("The number of values to compare for label '"+label+"' are different between the control and experiment and the difference cannot be plotted.")
             else:
-                for i in range(len(Cvalues)):
+                for i in range(min(len(Cvalues),maxTime)):
                     if (max(abs(Evalues[e]['metrics'][label][i]),abs(Cvalues[i])) != 0):
                         sub.append(abs(Evalues[e]['metrics'][label][i]-Cvalues[i])/max(abs(Evalues[e]['metrics'][label][i]),abs(Cvalues[i])))
                     else: #both are zero
@@ -165,7 +169,7 @@ def compare_stat_values(Cvalues, Evalues, verbose):
 
     if len(Cvalues) != len(Evalues):
         print("============================================")
-        print("There is a mismatch in the amount of ccomparisons between the experiment v. control.  Doulble check that both runs completed and that they ran for the same number of timesteps.")
+        print("There is a mismatch in the amount of comparisons between the experiment (",len(Evalues),") versus control. (",len(Cvalues),")  Double check that both runs completed and that they ran for the same number of timesteps.")
     else:
         for v in Cvalues.keys():
             if Cvalues[v] != Evalues[v]:
