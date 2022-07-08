@@ -75,16 +75,11 @@ def parse_it(log_file):
                    info['droplet_diag0'][split[0].strip()] = [split[1].strip()]
             # droplet 1st diagnostic stuff
             elif "DROPLET_DIAG1::" in line:
-               split  = line.strip().replace("DROPLET_DIAG1::","").split(':')
-               tmpstr = split[1].split()
+               split = line.strip().replace("DROPLET_DIAG1::","").split(':')
                if  split[0].strip() in info['droplet_diag1'].keys():
-                   if  tmpstr[-1] in info['droplet_diag1'][split[0].strip()].keys():
-                       info['droplet_diag1'][split[0].strip()][tmpstr[-1]].append(tmpstr[0])
-                   else:
-                       info['droplet_diag1'][split[0].strip()][tmpstr[-1]] = [tmpstr[0]]
+                   info['droplet_diag1'][split[0].strip()].append(split[1].strip())
                else:
-                   info['droplet_diag1'][split[0].strip()] = {}
-                   info['droplet_diag1'][split[0].strip()][tmpstr[-1]] = [tmpstr[0]]
+                   info['droplet_diag1'][split[0].strip()] = [split[1].strip()]
             # performance and total time collection
             elif in_timing_section and ':' in line and len(line.split())==4 and 'Warning' not in line:
                 split = line.split()
@@ -176,7 +171,7 @@ def metric_plots(Cvalues, Evalues, f, save_plot):
     else:
         plt.show()
 
-def droplet_diag0_plot(vname, val, experiment, f, save_plot):
+def droplet_diag_plot(vname, val, experiment, f, save_plot, suffix):
 
     for i,filename in enumerate(experiment):
         fig, ((pl1, pl2), (pl3,pl4)) = plt.subplots(2, 2, figsize=(12, 10))
@@ -189,30 +184,10 @@ def droplet_diag0_plot(vname, val, experiment, f, save_plot):
             plts[j].grid(linestyle='--')
             plts[j].legend()
         plt.subplots_adjust(bottom=0.25)
-        fig.suptitle("The relative differences in the Droplet 0-th Diagnostic Values |(exp-ctrl)|/max(|exp|,|ctrl|)\n"+f)
+        fig.suptitle("The relative differences in the Droplet Diagnostic Values |(exp-ctrl)|/max(|exp|,|ctrl|)\n"+f)
         plt.tight_layout()
         if  save_plot:
-            plt.savefig(f+'-'+os.path.basename(filename)+'-droplet-diag0.png')
-        else:
-            plt.show()
-
-def droplet_diag1_plot(vname, nlev, val, experiment, f, save_plot):
-
-    for i,filename in enumerate(experiment):
-        fig, ((pl1, pl2), (pl3,pl4)) = plt.subplots(2, 2, figsize=(12, 10))
-        plts = [pl1, pl2, pl3, pl4]
-        lens = len(vname[i])
-        for j in range(lens):
-            plts[j].plot(val[i][j],label=os.path.basename(filename))
-            plts[j].set_xlabel('diagnostic timestep')
-            plts[j].set_ylabel(vname[i][j]+" at lev "+nlev[i][j])
-            plts[j].grid(linestyle='--')
-            plts[j].legend()
-        plt.subplots_adjust(bottom=0.25)
-        fig.suptitle("The relative differences in the Droplet 1-st Diagnostic Values |(exp-ctrl)|/max(|exp|,|ctrl|)\n"+f)
-        plt.tight_layout()
-        if  save_plot:
-            plt.savefig(f+'-'+os.path.basename(filename)+'-droplet-diag1.png')
+            plt.savefig(f+'-'+os.path.basename(filename)+suffix)
         else:
             plt.show()
 
@@ -289,90 +264,6 @@ def compare_stat_values(Cvalues, Evalues, verbose):
 
     return ok,fail,small,return_key,return_val
 
-def compare_droplet1_values(Cvalues, Evalues, verbose):
-
-    ok = 0
-    fail = 0
-    small = 0
-
-    diff = {}
-    rel_err = [] 
-    vname = []
-    nlev = []
-    return_vname = []
-    return_nlev = []
-    return_val = []
-
-    if  len(Cvalues) != len(Evalues):
-        print("============================================")
-        print("Inside the Droplet 1st-order comparision:")
-        print("There is a mismatch in the amount of key values between the experiment (",len(Evalues),") versus control. (",len(Cvalues),")")
-    else:
-        for v in Cvalues.keys():
-            if  len(Cvalues[v]) != len(Evalues[v]):
-                print("Comparing key:  ",v)
-                print("There is a mismatch in the amount of comparisions between the experiment (",len(Evalues[v]),") versus control. (",len(Cvalues[v]),") Double check that both runs completed and that they ran for the same number of timesteps.")
-            else:
-                diff[v]    = {}
-                for k in Cvalues[v].keys():
-                    if  Cvalues[v][k] != Evalues[v][k]:
-                        rd = []
-                        flag = False
-                        for i in range(len(Cvalues[v][k])):
-                            if  (max(abs(float(Evalues[v][k][i])),abs(float(Cvalues[v][k][i]))) != 0):
-                                value = (abs(float(Evalues[v][k][i])-float(Cvalues[v][k][i]))) / \
-                                        max(abs(float(Evalues[v][k][i])),abs(float(Cvalues[v][k][i])))
-                                rd.append(value)
-                            else: #both are zero
-                                rd.append(0.0)
-                        rd_avg = np.average(rd)
-                        if  rd_avg > threshold:
-                            flag = True
-                        if  flag:
-                            diff[v][k] = rd
-                            rel_err.append(rd_avg)
-                            vname.append(v)
-                            nlev.append(k)
-                            fail+=1
-                        else:
-                            small+=1
-                            if verbose:
-                               print("\nDIFFERENCE DETECTED IN VARIABLE "+v+
-                                     ", but the mean relative difference is smaller than "+
-                                     str(threshold))
-                    else:
-                        if  verbose:
-                            print("\nNO DIFFERENCE IN VARIABLE "+v)
-                        ok+=1
-
-        # sort based on the mean error; ascending order
-        ind = np.lexsort((nlev,rel_err))
-        lens = len(rel_err)
-        # print out the variables with largest mean error
-        if  lens < num_print:
-            for i in range(lens):
-                print("\nRELATIVE DIFFERENCE IN VARIABLE "+vname[ind[i]]+" at LEV "+nlev[ind[i]]+" : |(exp-ctrl)|/max(|exp|,|ctrl|)")
-                print(diff[vname[ind[i]]][nlev[ind[i]]])
-                return_vname.append(vname[ind[i]])
-                return_nlev.append(nlev[ind[i]])
-                return_val.append(diff[vname[ind[i]]][nlev[ind[i]]])
-        else: 
-            for i in range(-1,-num_print-1,-1):
-                print("\nRELATIVE DIFFERENCE IN VARIABLE "+vname[ind[i]]+" at LEV "+nlev[ind[i]]+" : |(exp-ctrl)|/max(|exp|,|ctrl|)")
-                print(diff[vname[ind[i]]][nlev[ind[i]]])
-                return_vname.append(vname[ind[i]])
-                return_nlev.append(nlev[ind[i]])
-                return_val.append(diff[vname[ind[i]]][nlev[ind[i]]])
-
-        # Print the answer summary for this comparison
-        print("============================================")
-        print(str(ok)+" droplet_diag1 variables are identical.")
-        print(str(fail)+" droplet_diag1 variables show a mean relative difference > "+str(threshold))
-        print(str(small)+" droplet_diag1 variables show a mean relative difference <= "+str(threshold))
-    print("\n\n")
-
-    return ok,fail,small,return_vname,return_nlev,return_val
-
 def read_logs(json_file, save_plot, verbose):
 
     run_completed = {}
@@ -388,7 +279,6 @@ def read_logs(json_file, save_plot, verbose):
     vname_diag0 = []
     val_diag0 = []
     vname_diag1 = []
-    nlev_diag1 = []
     val_diag1 = []
 
     # loop through the different sets of log files
@@ -419,10 +309,9 @@ def read_logs(json_file, save_plot, verbose):
             vname_diag0.append(vname)
             val_diag0.append(val)
             print("Droplet 1st-order diagnostic comparision:")
-            # we need a new function for 11111111111th-order diagnostic
-            _,_,_,vname,nlev,val = compare_droplet1_values(control['droplet_diag1'], experiment[e]['droplet_diag1'], verbose)
+            # we could reuse the compare_stat_values function for 1st-order diagnostic
+            _,_,_,vname,val = compare_stat_values(control['droplet_diag1'], experiment[e]['droplet_diag1'], verbose)
             vname_diag1.append(vname)
-            nlev_diag1.append(nlev)
             val_diag1.append(val)
 
         # print and plot performance
@@ -434,11 +323,11 @@ def read_logs(json_file, save_plot, verbose):
 
         # droplet_diag0 plots: four variables with largest errors;
         #                      may be different for different config cases 
-        droplet_diag0_plot(vname_diag0, val_diag0, experiment, f, save_plot)
+        droplet_diag_plot(vname_diag0, val_diag0, experiment, f, save_plot, '-droplet-diag0.png')
 
         # droplet_diag1 plots: four variables with largest errors;
-        #                      may be at different levels for different config cases 
-        droplet_diag1_plot(vname_diag1, nlev_diag1, val_diag1, experiment, f, save_plot)
+        #                      may be different for different config cases 
+        droplet_diag_plot(vname_diag1, val_diag1, experiment, f, save_plot, '-droplet-diag1.png')
 
     # Print a summary across all comparisons
     print("============================================")
