@@ -26,22 +26,29 @@ project_code = 'NTDD0004'
 queue = 'casper'
 machine = 'casper'
 namelist_input_list = [
-    'namelist.asd03-verify.input'
+     'namelist.baseline.dx=40m.short'
+#    'namelist.asd03-verify.input',
 #    'namelist.sas.input',
 #    'namelist.asd04-128x512.input'
 ]
 exe_list = {
-#
 # control
-#'cm1-mpi.exe': {'args': 'FC=nvfortran USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=false DEBUG=false',
-#                          'mpi':True,
-#                          'nodes':1,
-#                          'ncpus':36,
-#                          'mpiprocs':36,
-#                          'ngpus':0,
-#                          'walltime':'00:30:00'
-#                         }
-#
+'cm1-mpi-ifort.exe': {'args': 'FC=ifort USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=false DEBUG=false',
+                          'mpi':True,
+                          'nodes':1,
+                          'ncpus':36,
+                          'mpiprocs':36,
+                          'ngpus':0,
+                          'walltime':'00:30:00'
+                         },
+'cm1-mpi-nvhpc.exe': {'args': 'FC=nvfortran USE_MPI=true USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=false DEBUG=false',
+                          'mpi':True,
+                          'nodes':1,
+                          'ncpus':36,
+                          'mpiprocs':36,
+                          'ngpus':0,
+                          'walltime':'00:30:00'
+                         },
 # Experiment 
 'cm1-openacc.exe': {'args': 'FC=nvfortran USE_MPI=false USE_OPENMP=false USE_DOUBLE=false USE_OPENACC=true DEBUG=false',
                           'mpi':False,
@@ -113,7 +120,7 @@ for exe in exe_list:
     elif FC_info == "pgf90":
         if machine == "casper":
             if OpenACC_info:
-                module_load="module purge ; module load ncarenv/1.3 pgi/20.4 openmpi/4.1.1 netcdf/4.7.4 cuda/11.4.0"
+                module_load="module purge ; module load ncarenv/1.3 pgi/20.4 openmpi/4.1.1 netcdf/4.7.4 cuda/11.6"
             else:
                 module_load="module purge ; module load ncarenv/1.3 pgi/20.4 openmpi/4.1.1 netcdf/4.7.4"
         else:
@@ -121,7 +128,7 @@ for exe in exe_list:
     elif FC_info == "nvfortran":
         if machine == "casper":
             if OpenACC_info:
-                module_load="module purge ; module load ncarenv/1.3 nvhpc/22.2 openmpi/4.1.1 netcdf/4.8.1 cuda/11.4.0"
+                module_load="module purge ; module load ncarenv/1.3 nvhpc/22.2 openmpi/4.1.1 netcdf/4.8.1 cuda/11.6"
             else:
                 module_load="module purge ; module load ncarenv/1.3 nvhpc/22.2 openmpi/4.1.1 netcdf/4.8.1"
         else:
@@ -155,7 +162,7 @@ for exe in exe_list:
 
             # set some variables for this setup
             run_dir = cm1_code_base + "/run/"
-            run_script = cwd+'/run_scripts/'+os.path.basename(log_fn)+".submit.csh" 
+            run_script = cwd+'/run_scripts/'+os.path.basename(log_fn)+".submit.sh" 
 
             # create the run script to submit to the queue    
             create_runscript.create_runscript(exe, exe_list[exe], project_code, queue, module_load, 

@@ -22,6 +22,8 @@ def parse_it(log_file):
               'stats':{},
               'metrics':{},
               'performance':{},
+              'droplet_diag0':{},
+              'droplet_diag1':{},
               'total_time':''
     }
 
@@ -64,6 +66,20 @@ def parse_it(log_file):
                value = line.split()[-1]
                if key in info['metrics'].keys():
                    info['metrics'][key].append(float(value))               
+            # droplet 0th diagnostic stuff
+            elif "DROPLET_DIAG::" in line:
+               split = line.strip().replace("DROPLET_DIAG::","").split(':')
+               if  split[0].strip() in info['droplet_diag0'].keys():
+                   info['droplet_diag0'][split[0].strip()].append(split[1].strip())
+               else:
+                   info['droplet_diag0'][split[0].strip()] = [split[1].strip()]
+            # droplet 1st diagnostic stuff
+            elif "DROPLET_DIAG1::" in line:
+               split = line.strip().replace("DROPLET_DIAG1::","").split(':')
+               if  split[0].strip() in info['droplet_diag1'].keys():
+                   info['droplet_diag1'][split[0].strip()].append(split[1].strip())
+               else:
+                   info['droplet_diag1'][split[0].strip()] = [split[1].strip()]
             # performance and total time collection
             elif in_timing_section and ':' in line and len(line.split())==4 and 'Warning' not in line:
                 split = line.split()
@@ -139,7 +155,6 @@ def line_info(_plt, Cvalues, Evalues, label):
         _plt.legend()
         return colors
 
-
 def metric_plots(Cvalues, Evalues, f, save_plot):
 
     fig, ((pl1, pl2), (pl3,pl4)) = plt.subplots(2, 2, figsize=(12, 10))
@@ -156,6 +171,25 @@ def metric_plots(Cvalues, Evalues, f, save_plot):
     else:
         plt.show()
 
+def droplet_diag_plot(vname, val, experiment, f, save_plot, suffix):
+
+    for i,filename in enumerate(experiment):
+        fig, ((pl1, pl2), (pl3,pl4)) = plt.subplots(2, 2, figsize=(12, 10))
+        plts = [pl1, pl2, pl3, pl4]
+        lens = len(vname[i])
+        for j in range(lens):
+            plts[j].plot(val[i][j],label=os.path.basename(filename))
+            plts[j].set_xlabel('diagnostic timestep')
+            plts[j].set_ylabel(vname[i][j])
+            plts[j].grid(linestyle='--')
+            plts[j].legend()
+        plt.subplots_adjust(bottom=0.25)
+        fig.suptitle("The relative differences in the Droplet Diagnostic Values |(exp-ctrl)|/max(|exp|,|ctrl|)\n"+f)
+        plt.tight_layout()
+        if  save_plot:
+            plt.savefig(f+'-'+os.path.basename(filename)+suffix)
+        else:
+            plt.show()
 
 def compare_stat_values(Cvalues, Evalues, verbose):
 
@@ -166,6 +200,8 @@ def compare_stat_values(Cvalues, Evalues, verbose):
     diff = {}
     rel_err = []
     key = []
+    return_key = []
+    return_val = []
 
     if len(Cvalues) != len(Evalues):
         print("============================================")
@@ -207,10 +243,14 @@ def compare_stat_values(Cvalues, Evalues, verbose):
            for i in range(lens):
                print("\nRELATIVE DIFFERENCE IN VARIABLE "+key[ind[i]]+" : |(exp-ctrl)|/max(|exp|,|ctrl|)")
                print(diff[key[ind[i]]])
+               return_key.append(key[ind[i]])
+               return_val.append(diff[key[ind[i]]])
         else:
            for i in range(-1,-num_print-1,-1):     
                print("\nRELATIVE DIFFERENCE IN VARIABLE "+key[ind[i]]+" : |(exp-ctrl)|/max(|exp|,|ctrl|)")
                print(diff[key[ind[i]]])
+               return_key.append(key[ind[i]])
+               return_val.append(diff[key[ind[i]]])
 
         # Print the answer summary for this comparison
         print("============================================")
@@ -222,8 +262,7 @@ def compare_stat_values(Cvalues, Evalues, verbose):
 #    plt.plot(diff.values())
 #    plt.show()
 
-    return ok,fail,small
-
+    return ok,fail,small,return_key,return_val
 
 def read_logs(json_file, save_plot, verbose):
 
@@ -237,6 +276,10 @@ def read_logs(json_file, save_plot, verbose):
     total_ok = 0
     total_fail = 0
     total_small = 0
+    vname_diag0 = []
+    val_diag0 = []
+    vname_diag1 = []
+    val_diag1 = []
 
     # loop through the different sets of log files
     for f in sorted(fns.keys()):
@@ -255,10 +298,21 @@ def read_logs(json_file, save_plot, verbose):
         for e in experiment:
             print("============================================")
             print("Summary for "+fns[f]['control']+" compared to "+os.path.basename(e))
-            ok,fail,small = compare_stat_values(control['stats'], experiment[e]['stats'], verbose)
+            print("Stat output comparision:")
+            ok,fail,small,_,_ = compare_stat_values(control['stats'], experiment[e]['stats'], verbose)
             total_ok = total_ok+ok
             total_fail = total_fail+fail
             total_small = total_small+small
+            print("Droplet 0th-order diagnostic comparision:")
+            # we could reuse the compare_stat_values function for 0th-order diagnostic
+            _,_,_,vname,val = compare_stat_values(control['droplet_diag0'], experiment[e]['droplet_diag0'], verbose)
+            vname_diag0.append(vname)
+            val_diag0.append(val)
+            print("Droplet 1st-order diagnostic comparision:")
+            # we could reuse the compare_stat_values function for 1st-order diagnostic
+            _,_,_,vname,val = compare_stat_values(control['droplet_diag1'], experiment[e]['droplet_diag1'], verbose)
+            vname_diag1.append(vname)
+            val_diag1.append(val)
 
         # print and plot performance
         performance_plot(control, os.path.basename(fns[f]['control']),
@@ -267,6 +321,13 @@ def read_logs(json_file, save_plot, verbose):
         # create metric plots
         metric_plots(control['metrics'], experiment, f, save_plot)
 
+        # droplet_diag0 plots: four variables with largest errors;
+        #                      may be different for different config cases 
+        droplet_diag_plot(vname_diag0, val_diag0, experiment, f, save_plot, '-droplet-diag0.png')
+
+        # droplet_diag1 plots: four variables with largest errors;
+        #                      may be different for different config cases 
+        droplet_diag_plot(vname_diag1, val_diag1, experiment, f, save_plot, '-droplet-diag1.png')
 
     # Print a summary across all comparisons
     print("============================================")
